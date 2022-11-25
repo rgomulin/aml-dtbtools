@@ -252,6 +252,10 @@ struct chipInfo_t *getChipInfo(const char *filename)
     struct chipInfo_t *chip = NULL;
     int rc = 0;
     uint8_t data[3][INFO_ENTRY_SIZE + 1] = { {0} };
+    int bDtcPathHasTrailingSlash = 0;
+
+    if (dtc_path[strlen(dtc_path)-1] == '/')
+        bDtcPathHasTrailingSlash = 1;
 
     line_size = 1024;
     line = (char *)malloc(line_size);
@@ -261,17 +265,20 @@ struct chipInfo_t *getChipInfo(const char *filename)
     }
 
     llen = sizeof(char) * (strlen(dtc_path) +
-                           strlen(str1) +
-                           strlen(str2) +
-                           strlen(filename) + 1);
+                            (bDtcPathHasTrailingSlash?0:1) +
+                            strlen(str1) +
+                            strlen(str2) +
+                            strlen(filename) + 1);
     buf = (char *)malloc(llen);
     if (!buf) {
-        log_err("Out of memory\n");
+        log_err("Cannot allocate memory (%d bytes) for DTC path string\n", llen);
         free(line);
         return NULL;
     }
 
     strncpy(buf, dtc_path, llen);
+    if (!bDtcPathHasTrailingSlash)
+        strncat(buf, "/", llen);
     strncat(buf, str1, llen);
     strncat(buf, filename, llen);
     strncat(buf, str2, llen);
