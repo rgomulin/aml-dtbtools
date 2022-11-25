@@ -115,12 +115,13 @@ void print_help()
     log_info("  --page-size/-s       page size in bytes, default = 2KB\n");
     log_info("  --verbose/-v         verbose\n");
     log_info("  --help/-h            this help screen\n");
+    log_info("  --version            print dtbTool version\n");
 }
 
 
 int parse_commandline(int argc, char *const argv[])
 {
-    int c;
+    int c, print_ver=0;
 
     struct option long_options[] = {
         {"output-file", 1, 0, 'o'},
@@ -128,12 +129,19 @@ int parse_commandline(int argc, char *const argv[])
         {"page-size",   1, 0, 's'},
         {"verbose",     0, 0, 'v'},
         {"help",        0, 0, 'h'},
+        {"version",     0, &print_ver, 1},
         {0, 0, 0, 0}
     };
 
     while ((c = getopt_long(argc, argv, "-o:p:s:vh", long_options, NULL))
            != -1) {
         switch (c) {
+        case 0: {
+            if (print_ver == 1) {
+                log_info("dtbTool v 2022.11-1\n");
+                exit(0);
+            }
+        } break;
         case 1:
             if (!input_dir) {
                 input_dir = optarg;
@@ -372,13 +380,12 @@ int main(int argc, char **argv)
     struct stat st;
     uint32_t version = AML_DT_VERSION;
 
-    log_info("DTB combiner:\n");
-
     if (parse_commandline(argc, argv) != RC_SUCCESS) {
         print_help();
         return RC_ERROR;
     }
 
+    log_info("DTB combiner:\n");
     log_info("  Input directory: '%s'\n", input_dir);
     log_info("  Output file: '%s'\n", output_file);
 
@@ -418,15 +425,15 @@ int main(int argc, char **argv)
 
                 chip = getChipInfo(filename);
                 if (!chip) {
-                    log_err("skip, failed to scan for '%s' tag\n",
-                            DT_ID_TAG);
+                    log_err("skip, failed to scan for the '%s' tag in '%s'\n",
+                            DT_ID_TAG, filename);
                     free(filename);
                     continue;
                 }
 
                 if ((stat(filename, &st) != 0) ||
                     (st.st_size == 0)) {
-                    log_err("skip, failed to get DTB size\n");
+                    log_err("skip, failed to get DTB size from %s\n", filename);
                     free(filename);
                     continue;
                 }
