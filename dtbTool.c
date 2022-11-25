@@ -77,12 +77,14 @@ char *input_dir;
 char *output_file;
 char *dtc_path;
 int   verbose;
-int   page_size = PAGE_SIZE_DEF;
+uint32_t   page_size = PAGE_SIZE_DEF;
+
 
 int entry_cmp(uint8_t *a, uint8_t *b)
 {
     return memcmp(a, b, INFO_ENTRY_SIZE);
 }
+
 
 uint32_t swap_bytes_u32(uint32_t b)
 {
@@ -91,6 +93,8 @@ uint32_t swap_bytes_u32(uint32_t b)
            ((b & 0x0000FF00) << 8) |
            (b << 24);
 }
+
+
 void padSpaces(uint8_t *s, int sz)
 {
     --sz;
@@ -101,16 +105,18 @@ void padSpaces(uint8_t *s, int sz)
     }
 }
 
+
 void print_help()
 {
     log_info("dtbTool [options] -o <output file> <input DTB path>\n");
     log_info("  options:\n");
     log_info("  --output-file/-o     output file\n");
     log_info("  --dtc-path/-p        path to dtc\n");
-    log_info("  --page-size/-s       page size in bytes\n");
+    log_info("  --page-size/-s       page size in bytes, default = 2KB\n");
     log_info("  --verbose/-v         verbose\n");
     log_info("  --help/-h            this help screen\n");
 }
+
 
 int parse_commandline(int argc, char *const argv[])
 {
@@ -148,13 +154,27 @@ int parse_commandline(int argc, char *const argv[])
         case 'p':
             dtc_path = optarg;
             break;
-        case 's':
-            page_size = atoi(optarg);
-            if ((page_size <= 0) || (page_size > (PAGE_SIZE_MAX))) {
+        case 's': {
+            log_dbg("Parsing page size %s\n", optarg);
+            char strPageSize[32] = {0};
+            int i = 0;
+            while (optarg[i] >= '0' && optarg[i] <= '9' && i < 32-1) {
+                strPageSize[i] = optarg[i];
+                i++;
+            }
+            uint32_t mp = 1;
+            if (optarg[i] == 'K' || optarg[i] == 'k')
+                mp = 1024;
+            else if (optarg[i] == 'M' || optarg[i] == 'm')
+                mp = 1024*1024;
+            page_size = atoi(strPageSize) * mp;
+            if (page_size <= 0 || page_size > PAGE_SIZE_MAX) {
                 log_err("Invalid page size (> 0 and <=1MB\n");
                 return RC_ERROR;
+            } else {
+                log_dbg("page size is 0x%X bytes\n", page_size);
             }
-            break;
+        } break;
         case 'v':
             verbose = 1;
             break;
